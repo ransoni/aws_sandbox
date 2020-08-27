@@ -1,0 +1,7 @@
+TerraformStateBucket:
+  Type: AWS::S3::Bucket
+  DeletionPolicy: Retain
+  Properties:
+    BucketName: ps-mika-terrastate-dev
+    VersioningConfiguration:
+      Status: Enabled

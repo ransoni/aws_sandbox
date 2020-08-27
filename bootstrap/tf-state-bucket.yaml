@@ -1,0 +1,42 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Terraform bootstrapping'
+
+Parameters:
+  TFStateBucketName:
+    Default: ps-mikat-terrastate
+    Description: Name for the S3 bucket to store the terraform state file
+    Type: String
+  CFPackageBucketName:
+    Default: 'cfn-deploy-packages'
+    Description: Name for the bucket to which CFN packages are stored
+    Type: String
+
+Resources:
+  TerraformStateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref TFStateBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  CFPackageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref CFPackageBucketName
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+# Outputs:
+#   PathToMaster

@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ---
+# Metadata: 
+
+Parameters: 
+  EKSClusterName:
+    Description: Name for the EKS cluster to be created
+    Type: String
+    Default: Fargate-test-eks
+  KubernetesVersion:
+    Type: String
+    AllowedValues: [ "1.16", "1.15", "1.14", "1.13" ]
+    Default: "1.16"
+  EKSIAMRoleName:
+    Description: Name for the EKS IAM Role
+    Type: String
+    Default: EKS-Cluster-Role
+  EKSVPC:
+    Description: VPC ID for the EKS
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-07a04f798d5a4a7db
+  EKSSubnet01:
+    Description: Subnet for the EKS
+    Type: String
+    Default: subnet-0af7e77f5c0fdcd38
+  EKSSubnet02:
+    Description: Subnet for the EKS
+    Type: String
+    Default: subnet-0b11cbed4f9636c70
+  FargatePodExecIAMRoleName:
+    Description: Name for the Fargate Pod Exec IAM Role
+    Type: String
+    Default: FargateEKSPodExecRole
+  FargatePodExecIAMPolicy:
+    Description: IAM Role for Fargate Pod Execution
+    Type: String
+    Default: arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
+  PrivateAccessCIDRs:
+    Description: List of CIDR for private access
+    Type: List<String>
+    Default: 10.10.0.0/16
+  PublicAccessCIDRs:
+    Description: List of CIDRs for public access
+    Type: List<String>
+    Default: 10.10.0.0/16
+  EKSPrivateAccessEndpoint:
+    Type: String
+    AllowedValues: [Enabled, Disabled]
+    Default: Enabled
+
+# Mappings: 
+
+Conditions: 
+  EnablePrivateEndpoint: !Equals [ !Ref EKSPrivateAccessEndpoint, "Enabled" ]
+
+Resources: 
+  EKSIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      RoleName: !Ref EKSIAMRoleName
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        # - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+    
+  FargatePodExecIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks-fargate-pods.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      RoleName: !Ref FargatePodExecIAMRoleName
+      ManagedPolicyArns:
+        - !Ref FargatePodExecIAMPolicy
+
+  EKSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: SG_EKS_Control_Plane
+      GroupDescription: SG for EKS Fargate Cluster Control Plane
+      VpcId: !Ref EKSVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.10.0.0/16
+      # SecurityGroupEgress:
+      #   - Security Group Rule
+      Tags:
+        - Key: Name
+          Value: fargate-test-cluster
+
+  EKSCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties:
+      Name: !Ref EKSClusterName
+      Version: !Ref KubernetesVersion
+      RoleArn: !GetAtt EKSIAMRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSSG
+        SubnetIds:
+          - !Ref EKSSubnet01
+          - !Ref EKSSubnet02
+        # PrivateAccessCIDRs: !Ref PrivateAccessCIDRs
+        # PublicAccessCIDRs: !Ref PublicAccessCIDRs
+        # EndpointPrivateAccess: !If [ EnablePrivateEndpoint, true, false ]
+        
+    # DependsOn: [EKSIAMRole]
+
+# Outputs:

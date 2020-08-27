@@ -1,0 +1,238 @@
+[
+    {
+        "ParameterKey": "VPCID",
+        "ParameterValue": "vpc-02a18dc59d8acf510"
+    },
+    {
+        "ParameterKey": "PublicSubnet1ID",
+        "ParameterValue": "subnet-0c2c99d7a78baa2be"
+    },
+    {
+        "ParameterKey": "PublicSubnet2ID",
+        "ParameterValue": "subnet-0970bcbeaed471943"
+    },
+    {
+        "ParameterKey": "PublicSubnet3ID",
+        "ParameterValue": "subnet-0b3b31a10ed0bfe49"
+    },
+    {
+        "ParameterKey": "PrivateSubnet1ID",
+        "ParameterValue": "subnet-04c1da7a5bd48b505"
+    },
+    {
+        "ParameterKey": "PrivateSubnet2ID",
+        "ParameterValue": "subnet-05f9af16abee5fb21"
+    },
+    {
+        "ParameterKey": "PrivateSubnet3ID",
+        "ParameterValue": "subnet-0accaa9a61454f54d"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "10.10.0.0/16"
+    },
+    {
+        "ParameterKey": "EKSClusterName",
+        "ParameterValue": "fargate-eks"
+    },
+    {
+        "ParameterKey": "KubernetesVersion",
+        "ParameterValue": "1.16"
+    },
+    {
+        "ParameterKey": "EKSPublicAccessEndpoint",
+        "ParameterValue": "Enabled"
+    },
+    {
+        "ParameterKey": "EKSPublicAccessCIDRs",
+        "ParameterValue": "79.134.107.170/32"
+    },
+    {
+        "ParameterKey": "EKSPrivateAccessEndpoint",
+        "ParameterValue": "Enabled"
+    },
+    {
+        "ParameterKey": "AdditionalEKSAdminUserArn",
+        "ParameterValue": "arn:aws:iam::050548751257:user/sandbox-admin"
+    },
+    {
+        "ParameterKey": "AdditionalEKSAdminRoleArn",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "ProvisionALBIngressController",
+        "ParameterValue": "Enabled"
+    },
+    {
+        "ParameterKey": "ProvisionClusterAutoScaler",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "EKSEncryptSecretsKmsKeyArn",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "EKSClusterLoggingTypes",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "EKSEncryptSecrets",
+        "ParameterValue": "Enabled"
+    },
+    {
+        "ParameterKey": "FargateNamespaces",
+        "ParameterValue": "default"
+    },
+    {
+        "ParameterKey": "FargateLabels",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "ManagedNodeGroup",
+        "ParameterValue": "no"
+    },
+    {
+        "ParameterKey": "MangedNodeGroupLabel",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "NodeGroupName",
+        "ParameterValue": "Default"
+    },
+    {
+        "ParameterKey": "ManagedNodeGroupAMIType",
+        "ParameterValue": "AL2_x86_64"
+    },
+    {
+        "ParameterKey": "NumberOfNodes",
+        "ParameterValue": "1"
+    },
+    {
+        "ParameterKey": "NodeInstanceType",
+        "ParameterValue": "t3.medium"
+    },
+    {
+        "ParameterKey": "NodeAMIOS",
+        "ParameterValue": "Amazon-Linux-HVM"
+    },
+    {
+        "ParameterKey": "NodeVolumeSize",
+        "ParameterValue": "20"
+    },
+    {
+        "ParameterKey": "MaxNumberOfNodes",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "CustomAmiId",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "LambdaZipsBucketName",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "BastionIAMRoleName",
+        "ParameterValue": "bastion-role"
+    },
+    {
+        "ParameterKey": "BastionRootVolumeSize",
+        "ParameterValue": "10"
+    },
+    {
+        "ParameterKey": "BastionVariables",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "BastionEnableX11Forwarding",
+        "ParameterValue": "false"
+    },
+    {
+        "ParameterKey": "BastionOS",
+        "ParameterValue": "Amazon-Linux2-HVM"
+    },
+    {
+        "ParameterKey": "BastionEnableTCPForwarding",
+        "ParameterValue": "false"
+    },
+    {
+        "ParameterKey": "BastionAMIID",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "ProvisionBastionHost",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "BastionBootstrapScript",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "BastionInstanceType",
+        "ParameterValue": "t2.micro"
+    },
+    {
+        "ParameterKey": "ProvisionMonitoringStack",
+        "ParameterValue": "None"
+    },
+    {
+        "ParameterKey": "IamOidcProvider",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "EfsProvisionedThroughputInMibps",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "EfsStorageClass",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "EfsPerformanceMode",
+        "ParameterValue": "generalPurpose"
+    },
+    {
+        "ParameterKey": "EfsThroughputMode",
+        "ParameterValue": "bursting"
+    },
+    {
+        "ParameterKey": "BootstrapArguments",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "sandbox-admin"
+    },
+    {
+        "ParameterKey": "HttpProxy",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "QSS3KeyPrefix",
+        "ParameterValue": "quickstart-amazon-eks/"
+    },
+    {
+        "ParameterKey": "QSS3BucketName",
+        "ParameterValue": "aws-quickstart"
+    },
+    {
+        "ParameterKey": "QSS3BucketRegion",
+        "ParameterValue": "us-east-1"
+    },
+    {
+        "ParameterKey": "NewRelicLicenseKey",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "NewRelicIntegration",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "SnykIntegrationId",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "SnykIntegration",
+        "ParameterValue": "Disabled"
+    }
+]

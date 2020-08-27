@@ -1,0 +1,962 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploys an EKS cluster into an existing VPC (qs-1p7nknoi6)
+Metadata:
+  QSLint:
+    Exclusions:
+    - W9002
+    - W9003
+    - W9004
+    - W9006
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+  NodeAMIOS:
+    AllowedValues:
+    - Amazon-Linux-HVM
+    - SUSE-SLES-15-HVM
+    Default: Amazon-Linux-HVM
+    Type: String
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    Default: aws-quickstart
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/.]*$
+    Default: quickstart-amazon-eks/
+    Type: String
+  QSS3BucketRegion:
+    Default: us-east-1
+    Description: The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is
+      hosted. When using your own bucket, you must specify this value.
+    Type: String
+  RemoteAccessCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    Type: String
+  EKSPublicAccessCIDRs:
+    Type: List<String>
+    Default: 0.0.0.0/0
+  EKSPublicAccessEndpoint:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  EKSPrivateAccessEndpoint:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Enabled
+  EKSClusterLoggingTypes:
+    Type: List<String>
+    Default: ''
+  EKSEncryptSecrets:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Enabled
+  EKSEncryptSecretsKmsKeyArn:
+    Type: String
+    Default: ''
+  AdditionalEKSAdminUserArn:
+    Type: String
+    Default: ''
+  AdditionalEKSAdminRoleArn:
+    Type: String
+    Default: ''
+  NodeInstanceType:
+    Default: t3.medium
+    AllowedValues:
+    - t3.nano
+    - t3.micro
+    - t3.small
+    - t3.medium
+    - t3.large
+    - t3.xlarge
+    - t3.2xlarge
+    - t3a.nano
+    - t3a.micro
+    - t3a.small
+    - t3a.medium
+    - t3a.large
+    - t3a.xlarge
+    - t3a.2xlarge
+    - m5.large
+    - m5.xlarge
+    - m5.2xlarge
+    - m5.4xlarge
+    - m5.12xlarge
+    - m5.24xlarge
+    - m5a.large
+    - m5a.xlarge
+    - m5a.2xlarge
+    - m5a.4xlarge
+    - m5a.12xlarge
+    - m5a.24xlarge
+    - c5.large
+    - c5.xlarge
+    - c5.2xlarge
+    - c5.4xlarge
+    - c5.9xlarge
+    - c5.18xlarge
+    - c5a.large
+    - c5a.xlarge
+    - c5a.2xlarge
+    - c5a.4xlarge
+    - c5a.12xlarge
+    - c5a.24xlarge
+    - i3.large
+    - i3.xlarge
+    - i3.2xlarge
+    - i3.4xlarge
+    - i3.8xlarge
+    - i3.16xlarge
+    - x1.16xlarge
+    - x1.32xlarge
+    - p3.2xlarge
+    - p3.8xlarge
+    - p3.16xlarge
+    - r5.large
+    - r5.xlarge
+    - r5.2xlarge
+    - r5.4xlarge
+    - r5.12xlarge
+    - r5.24xlarge
+    - r5a.large
+    - r5a.xlarge
+    - r5a.2xlarge
+    - r5a.4xlarge
+    - r5a.12xlarge
+    - r5a.24xlarge
+    - r5d.large
+    - r5d.xlarge
+    - r5d.2xlarge
+    - r5d.4xlarge
+    - r5d.12xlarge
+    - r5d.24xlarge
+    - z1d.large
+    - z1d.xlarge
+    - z1d.2xlarge
+    - z1d.3xlarge
+    - z1d.6xlarge
+    - z1d.12xlarge
+    ConstraintDescription: Must be a valid EC2 instance type
+    Type: String
+  NumberOfNodes:
+    Default: 3
+    Type: Number
+  MaxNumberOfNodes:
+    Default: 3
+    Type: Number
+  NodeGroupEnable:
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+    Type: String
+  NodeGroupName:
+    Default: Default
+    Type: String
+  NodeVolumeSize:
+    Default: 20
+    Type: String
+  CustomAmiId:
+    Default: ''
+    Type: String
+  ManagedNodeGroup:
+    AllowedValues:
+    - 'yes'
+    - 'no'
+    Default: 'no'
+    Description: Choose if you want to use a managed node group. If you select "yes",
+      you must select Kubernetes Version 1.14 or higher.
+    Type: String
+  ManagedNodeGroupAMIType:
+    Description: Select one of the two AMI types for your managed node group (only
+      applies if you chose "yes" for ManagedNodeGroup). GPU instance types should
+      use the AL2_x86_64_GPU AMI type, which uses the Amazon EKS-optimized Linux AMI
+      with GPU support. Non-GPU instances should use the AL2_x86_64 AMI type, which
+      uses the Amazon EKS-optimized Linux AMI.
+    AllowedValues:
+    - AL2_x86_64
+    - ' AL2_x86_64_GPU'
+    Default: AL2_x86_64
+    Type: String
+  MangedNodeGroupLabel:
+    Description: Add a custom name label to the Managed Node Group Nodes. If you dont
+      do this then a default one will be added for you.
+    Type: String
+    Default: ''
+  LambdaZipsBucketName:
+    Type: String
+    Default: ''
+  VPCID:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnet1ID:
+    Type: String
+    Default: ''
+  PublicSubnet2ID:
+    Type: String
+    Default: ''
+  PublicSubnet3ID:
+    Type: String
+    Default: ''
+  PrivateSubnet1ID:
+    Type: AWS::EC2::Subnet::Id
+  PrivateSubnet2ID:
+    Type: String
+    Default: ''
+  PrivateSubnet3ID:
+    Type: String
+    Default: ''
+  KubernetesVersion:
+    Type: String
+    AllowedValues:
+    - '1.13'
+    - '1.14'
+    - '1.15'
+    - '1.16'
+    Default: '1.16'
+  ProvisionClusterAutoScaler:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  IamOidcProvider:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  ProvisionALBIngressController:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  ProvisionMonitoringStack:
+    Type: String
+    AllowedValues:
+    - Prometheus + Grafana
+    - None
+    Default: None
+  BootstrapArguments:
+    Type: String
+    Default: ''
+  BastionOS:
+    Type: String
+    AllowedValues:
+    - Amazon-Linux2-HVM
+    - Amazon-Linux-HVM
+    - CentOS-7-HVM
+    - Ubuntu-Server-14.04-LTS-HVM
+    - Ubuntu-Server-16.04-LTS-HVM
+    - SUSE-SLES-15-HVM
+    Default: Amazon-Linux2-HVM
+  ProvisionBastionHost:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  BastionBootstrapScript:
+    Default: ''
+    Type: String
+  BastionInstanceType:
+    Default: t2.micro
+    Type: String
+  BastionRootVolumeSize:
+    Type: Number
+    Default: 10
+  BastionIAMRoleName:
+    Type: String
+    Default: ''
+  BastionEnableTCPForwarding:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  BastionEnableX11Forwarding:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+    - 'true'
+    - 'false'
+  BastionAMIID:
+    Type: String
+    Default: ''
+  BastionVariables:
+    Type: String
+    Default: ''
+  EfsStorageClass:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  EfsPerformanceMode:
+    Type: String
+    AllowedValues:
+    - generalPurpose
+    - maxIO
+    Default: generalPurpose
+  EfsThroughputMode:
+    Type: String
+    AllowedValues:
+    - bursting
+    - provisioned
+    Default: bursting
+  EfsProvisionedThroughputInMibps:
+    Type: Number
+    MinValue: '0'
+    MaxValue: '1024'
+    Default: '0'
+  HttpProxy:
+    Type: String
+    Default: ''
+  FargateNamespaces:
+    Type: String
+    Default: ''
+  FargateLabels:
+    Type: String
+    Default: ''
+  EKSClusterName:
+    Type: String
+    Default: ''
+    Description: '[OPTIONAL] Name for the EKS cluster, if left blank one will be auto-generated.'
+  SnykIntegrationId:
+    Type: String
+    Default: ''
+  SnykIntegration:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+  NewRelicLicenseKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+  NewRelicIntegration:
+    Type: String
+    AllowedValues:
+    - Enabled
+    - Disabled
+    Default: Disabled
+Conditions:
+  EnableNodeGroup:
+    Fn::Equals:
+    - Ref: NodeGroupEnable
+    - Enabled
+  EnableSnyk:
+    Fn::Equals:
+    - Ref: SnykIntegration
+    - Enabled
+  EnableNewRelic:
+    Fn::Equals:
+    - Ref: NewRelicIntegration
+    - Enabled
+  EnableFargate:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: FargateNamespaces
+      - ''
+  3AZDeployment:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: PrivateSubnet3ID
+      - ''
+  2AZDeployment:
+    Fn::Or:
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: PrivateSubnet2ID
+        - ''
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: PrivateSubnet3ID
+        - ''
+  EnablePublicSubnets:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: PublicSubnet1ID
+      - ''
+  CreateLambdaZipsBucket:
+    Fn::Equals:
+    - Ref: LambdaZipsBucketName
+    - ''
+  DefaultBastionBootstrap:
+    Fn::Equals:
+    - Ref: BastionBootstrapScript
+    - ''
+  EnableBastion:
+    Fn::And:
+    - Fn::Equals:
+      - Ref: ProvisionBastionHost
+      - Enabled
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: PublicSubnet1ID
+        - ''
+  CustomBastionRole:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: BastionIAMRoleName
+      - ''
+  AdditionalVars:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: BastionVariables
+      - ''
+  EnableClusterAutoScaler:
+    Fn::Equals:
+    - Ref: ProvisionClusterAutoScaler
+    - Enabled
+  EnableALBIngressController:
+    Fn::Equals:
+    - Ref: ProvisionALBIngressController
+    - Enabled
+  EnableMonitoringPrometheusGrafana:
+    Fn::Equals:
+    - Ref: ProvisionMonitoringStack
+    - Prometheus + Grafana
+  EnableEfs:
+    Fn::Equals:
+    - Ref: EfsStorageClass
+    - Enabled
+  UsingDefaultBucket:
+    Fn::Equals:
+    - Ref: QSS3BucketName
+    - aws-quickstart
+  GenerateClusterName:
+    Fn::Equals:
+    - Ref: EKSClusterName
+    - ''
+Resources:
+  BastionEksPermissions:
+    Condition: EnableBastion
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AllowEKSClusterOperations
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - eks:DescribeCluster
+          - eks:DescribeUpdate
+          - eks:ListUpdates
+          - eks:UpdateClusterVersion
+          Resource:
+            Fn::Sub: arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:cluster/${EKSControlPlane.Outputs.EKSName}
+      Roles:
+      - Fn::GetAtt:
+        - IamStack
+        - Outputs.BastionRole
+  BastionStack:
+    Condition: EnableBastion
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Sub:
+        - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.template
+        - S3Region:
+            Fn::If:
+            - UsingDefaultBucket
+            - Ref: AWS::Region
+            - Ref: QSS3BucketRegion
+          S3Bucket:
+            Fn::If:
+            - UsingDefaultBucket
+            - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+            - Ref: QSS3BucketName
+      Parameters:
+        BastionHostName: EKSBastion
+        BastionBanner:
+          Fn::Sub:
+          - s3://${S3Bucket}/${QSS3KeyPrefix}scripts/bastion_banner_message.txt
+          - S3Bucket:
+              Fn::If:
+              - UsingDefaultBucket
+              - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+              - Ref: QSS3BucketName
+        EnableBanner: true
+        BastionTenancy: default
+        NumBastionHosts: '1'
+        OSImageOverride:
+          Ref: BastionAMIID
+        VPCID:
+          Ref: VPCID
+        PublicSubnet1ID:
+          Ref: PublicSubnet1ID
+        PublicSubnet2ID:
+          Fn::If:
+          - 2AZDeployment
+          - Ref: PublicSubnet2ID
+          - Ref: AWS::NoValue
+        KeyPairName:
+          Ref: KeyPairName
+        QSS3BucketName:
+          Ref: QSS3BucketName
+        QSS3KeyPrefix:
+          Fn::Sub: ${QSS3KeyPrefix}submodules/quickstart-linux-bastion/
+        QSS3BucketRegion:
+          Ref: QSS3BucketRegion
+        RemoteAccessCIDR:
+          Ref: RemoteAccessCIDR
+        BastionInstanceType:
+          Ref: BastionInstanceType
+        RootVolumeSize:
+          Ref: BastionRootVolumeSize
+        AlternativeInitializationScript:
+          Fn::If:
+          - DefaultBastionBootstrap
+          - Fn::Sub:
+            - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/bastion_bootstrap.sh
+            - S3Region:
+                Fn::If:
+                - UsingDefaultBucket
+                - Ref: AWS::Region
+                - Ref: QSS3BucketRegion
+              S3Bucket:
+                Fn::If:
+                - UsingDefaultBucket
+                - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+                - Ref: QSS3BucketName
+          - Ref: BastionBootstrapScript
+        AlternativeIAMRole:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.BastionRole
+        BastionAMIOS:
+          Ref: BastionOS
+        EnableTCPForwarding:
+          Ref: BastionEnableTCPForwarding
+        EnableX11Forwarding:
+          Ref: BastionEnableX11Forwarding
+        EnvironmentVariables:
+          Fn::Sub:
+          - 'K8S_CLUSTER_NAME=${EKSControlPlane.Outputs.EKSName}, K8S_CA_DATA=${EKSControlPlane.Outputs.CAData},
+            K8S_ENDPOINT=${EKSControlPlane.Outputs.EKSEndpoint}${Joiner} ${BastionVariables}
+
+            '
+          - Joiner:
+              Fn::If:
+              - AdditionalVars
+              - ','
+              - ''
+  IamStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/cfn-deploy-packages/8998af14808fa00edf60ff83887f7761.template
+      Parameters:
+        LambdaZipsBucketName:
+          Fn::If:
+          - CreateLambdaZipsBucket
+          - Ref: LambdaZipsBucket
+          - Ref: LambdaZipsBucketName
+        DeleteLambdaZipsBucketContents:
+          Fn::If:
+          - CreateLambdaZipsBucket
+          - 'True'
+          - 'False'
+        QSS3BucketName:
+          Ref: QSS3BucketName
+        QSS3KeyPrefix:
+          Ref: QSS3KeyPrefix
+        CreateBastionRole:
+          Fn::If:
+          - CustomBastionRole
+          - Disabled
+          - Fn::If:
+            - EnableBastion
+            - Enabled
+            - Disabled
+        BastionIAMRoleName:
+          Ref: BastionIAMRoleName
+  FunctionStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/cfn-deploy-packages/afb8fb933f51904225448017db11222a.template
+      Parameters:
+        LambdaZipsBucketName:
+          Fn::If:
+          - CreateLambdaZipsBucket
+          - Ref: LambdaZipsBucket
+          - Ref: LambdaZipsBucketName
+        QSS3BucketName:
+          Ref: QSS3BucketName
+        QSS3KeyPrefix:
+          Ref: QSS3KeyPrefix
+        CopyZipsRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.CopyZipsRoleArn
+        KubernetesAdminRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.KubernetesAdminRoleArn
+        ControlPlaneSecurityGroup:
+          Ref: ControlPlaneSecurityGroup
+        DeleteBucketContentsRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.DeleteBucketContentsRoleArn
+        DeleteLambdaZipsBucketContents:
+          Fn::If:
+          - CreateLambdaZipsBucket
+          - 'True'
+          - 'False'
+        VPCID:
+          Ref: VPCID
+        CleanupLoadBalancersRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.CleanupLoadBalancersRoleArn
+        CleanupSecurityGroupDependenciesRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.CleanupSecurityGroupDependenciesRoleArn
+        CleanupLambdasRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.CleanupLambdasRoleArn
+        GetCallerArnRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.GetCallerArnRoleArn
+        CreateVpcRoleRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.CreateVpcRoleRoleArn
+        RegisterTypeRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.RegisterTypeRoleArn
+        RegisterCustomResourceRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.RegisterCustomResourceRoleArn
+        NodeSGRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.NodeSGRoleArn
+        FargateProfileRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.FargateProfileRoleArn
+        EKSSubnetIds:
+          Fn::If:
+          - 3AZDeployment
+          - Fn::Join:
+            - ','
+            - - Ref: PrivateSubnet1ID
+              - Ref: PrivateSubnet2ID
+              - Ref: PrivateSubnet3ID
+          - Fn::If:
+            - 2AZDeployment
+            - Fn::Join:
+              - ','
+              - - Ref: PrivateSubnet1ID
+                - Ref: PrivateSubnet2ID
+            - Ref: PrivateSubnet1ID
+        EKSClusterName:
+          Fn::If:
+          - GenerateClusterName
+          - Ref: GenerateName
+          - Ref: EKSClusterName
+        HttpProxy:
+          Ref: HttpProxy
+  LambdaZipsBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateLambdaZipsBucket
+  DeleteBucketContents:
+    Condition: CreateLambdaZipsBucket
+    Type: Custom::DeleteBucketContents
+    Version: '1.0'
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - FunctionStack
+        - Outputs.DeleteBucketContentsLambdaArn
+      Bucket:
+        Ref: LambdaZipsBucket
+  CleanupLambdas:
+    Condition: CreateLambdaZipsBucket
+    Type: Custom::CleanupLambdas
+    Version: '1.0'
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - FunctionStack
+        - Outputs.CleanupLambdasLambdaArn
+      SecurityGroupId:
+        Ref: ControlPlaneSecurityGroup
+  ControlPlaneSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Cluster communication
+      VpcId:
+        Ref: VPCID
+  ControlPlaneSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allow SG members to access k8s api
+      GroupId:
+        Ref: ControlPlaneSecurityGroup
+      SourceSecurityGroupId:
+        Ref: ControlPlaneSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+  EKSControlPlane:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Sub:
+        - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/amazon-eks-controlplane.template.yaml
+        - S3Region:
+            Fn::If:
+            - UsingDefaultBucket
+            - Ref: AWS::Region
+            - Ref: QSS3BucketRegion
+          S3Bucket:
+            Fn::If:
+            - UsingDefaultBucket
+            - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+            - Ref: QSS3BucketName
+      Parameters:
+        SecurityGroupIds:
+          Ref: ControlPlaneSecurityGroup
+        SubnetIds:
+          Fn::If:
+          - EnablePublicSubnets
+          - Fn::If:
+            - 3AZDeployment
+            - Fn::Join:
+              - ','
+              - - Ref: PrivateSubnet1ID
+                - Ref: PrivateSubnet2ID
+                - Ref: PrivateSubnet3ID
+                - Ref: PublicSubnet1ID
+                - Ref: PublicSubnet2ID
+                - Ref: PublicSubnet3ID
+            - Fn::If:
+              - 2AZDeployment
+              - Fn::Join:
+                - ','
+                - - Ref: PrivateSubnet1ID
+                  - Ref: PrivateSubnet2ID
+                  - Ref: PublicSubnet1ID
+                  - Ref: PublicSubnet2ID
+              - Fn::Join:
+                - ','
+                - - Ref: PrivateSubnet1ID
+                  - Ref: PublicSubnet1ID
+          - Fn::If:
+            - 3AZDeployment
+            - Fn::Join:
+              - ','
+              - - Ref: PrivateSubnet1ID
+                - Ref: PrivateSubnet2ID
+                - Ref: PrivateSubnet3ID
+            - Fn::If:
+              - 2AZDeployment
+              - Fn::Join:
+                - ','
+                - - Ref: PrivateSubnet1ID
+                  - Ref: PrivateSubnet2ID
+              - Fn::Join:
+                - ','
+                - - Ref: PrivateSubnet1ID
+        RoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.ControlPlaneRoleArn
+        NodeInstanceRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.NodeInstanceRoleArn
+        AdditionalEKSAdminUserArn:
+          Ref: AdditionalEKSAdminUserArn
+        AdditionalEKSAdminRoleArn:
+          Ref: AdditionalEKSAdminRoleArn
+        KubernetesVersion:
+          Ref: KubernetesVersion
+        CleanupLoadBalancersLambdaArn:
+          Fn::GetAtt:
+          - FunctionStack
+          - Outputs.CleanupLoadBalancersLambdaArn
+        GetCallerArnLambdaArn:
+          Fn::GetAtt:
+          - FunctionStack
+          - Outputs.GetCallerArnLambdaArn
+        BastionRole:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.BastionRole
+        FunctionRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.KubernetesAdminRoleArn
+        EKSPublicAccessCIDRs:
+          Fn::Join:
+          - ','
+          - Ref: EKSPublicAccessCIDRs
+        EKSPublicAccessEndpoint:
+          Ref: EKSPublicAccessEndpoint
+        EKSPrivateAccessEndpoint:
+          Ref: EKSPrivateAccessEndpoint
+        EKSClusterLoggingTypes:
+          Fn::Join:
+          - ','
+          - Ref: EKSClusterLoggingTypes
+        EKSEncryptSecrets:
+          Ref: EKSEncryptSecrets
+        EKSEncryptSecretsKmsKeyArn:
+          Ref: EKSEncryptSecretsKmsKeyArn
+        IamOidcProvider:
+          Fn::If:
+          - EnableALBIngressController
+          - Enabled
+          - Ref: IamOidcProvider
+        EKSClusterName:
+          Fn::If:
+          - GenerateClusterName
+          - Ref: GenerateName
+          - Ref: EKSClusterName
+  FargateStack:
+    Condition: EnableFargate
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/cfn-deploy-packages/8e319f47935c45f038c3d14a2501ba20.template
+      Parameters:
+        ClusterName:
+          Fn::GetAtt:
+          - EKSControlPlane
+          - Outputs.EKSName
+        FargateProfileLambdaArn:
+          Fn::GetAtt:
+          - FunctionStack
+          - Outputs.FargateProfileLambdaArn
+        FargateExecutionRoleArn:
+          Fn::GetAtt:
+          - IamStack
+          - Outputs.FargateExecutionRoleArn
+        Namespaces:
+          Ref: FargateNamespaces
+        Labels:
+          Ref: FargateLabels
+        Subnets:
+          Fn::If:
+          - 3AZDeployment
+          - Fn::Join:
+            - ','
+            - - Ref: PrivateSubnet1ID
+              - Ref: PrivateSubnet2ID
+              - Ref: PrivateSubnet3ID
+          - Fn::If:
+            - 2AZDeployment
+            - Fn::Join:
+              - ','
+              - - Ref: PrivateSubnet1ID
+                - Ref: PrivateSubnet2ID
+            - Ref: PrivateSubnet1ID
+  GenerateNameFunction:
+    Condition: GenerateClusterName
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Copies objects from a source S3 bucket to a destination
+      Handler: index.handler
+      Runtime: python3.7
+      Role:
+        Fn::GetAtt:
+        - IamStack
+        - Outputs.CopyZipsRoleArn
+      Timeout: 900
+      Code:
+        ZipFile: "import cfnresponse\nimport logging\nfrom random import choice\n\
+          from string import ascii_uppercase, digits\nlogger = logging.getLogger(__name__)\n\
+          def handler(event, context):\n    logger.debug(event)\n    status = cfnresponse.SUCCESS\n\
+          \    pid = None\n    try:\n        if event['RequestType'] == 'Create':\n\
+          \            pid = 'EKS-' + ''.join((choice(ascii_uppercase + digits) for\
+          \ i in range(8)))\n        else:\n            pid = event['PhysicalResourceId']\n\
+          \    except Exception:\n        logging.error('Unhandled exception', exc_info=True)\n\
+          \        status = cfnresponse.FAILED\n    finally:\n        cfnresponse.send(event,\
+          \ context, status, {}, pid)\n"
+  GenerateName:
+    Condition: GenerateClusterName
+    Type: Custom::GenerateName
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+        - GenerateNameFunction
+        - Arn
+Outputs:
+  BastionIP:
+    Value:
+      Fn::If:
+      - EnableBastion
+      - Fn::GetAtt:
+        - BastionStack
+        - Outputs.EIP1
+      - ''
+  BastionSecurityGroup:
+    Value:
+      Fn::If:
+      - EnableBastion
+      - Fn::GetAtt:
+        - BastionStack
+        - Outputs.BastionSecurityGroupID
+      - ''
+  BastionAutoScalingGroup:
+    Value:
+      Fn::If:
+      - EnableBastion
+      - Fn::GetAtt:
+        - BastionStack
+        - Outputs.BastionAutoScalingGroup
+      - ''
+  EKSClusterName:
+    Value:
+      Fn::GetAtt:
+      - EKSControlPlane
+      - Outputs.EKSName
+  NodeInstanceProfile:
+    Value:
+      Fn::GetAtt:
+      - IamStack
+      - Outputs.NodeInstanceProfile
+  NodeInstanceRoleName:
+    Value:
+      Fn::GetAtt:
+      - IamStack
+      - Outputs.NodeInstanceRoleName
+  ControlPlaneSecurityGroup:
+    Value:
+      Fn::GetAtt:
+      - ControlPlaneSecurityGroup
+      - GroupId
+  NodeInstanceRoleArn:
+    Value:
+      Fn::GetAtt:
+      - IamStack
+      - Outputs.NodeInstanceRoleArn
+  CleanupSecurityGroupDependenciesLambdaArn:
+    Value:
+      Fn::GetAtt:
+      - FunctionStack
+      - Outputs.CleanupSecurityGroupDependenciesLambdaArn
+  OIDCIssuerURL:
+    Value:
+      Fn::GetAtt:
+      - EKSControlPlane
+      - Outputs.OIDCIssuerURL
+  NodeSGFunctionArn:
+    Value:
+      Fn::GetAtt:
+      - FunctionStack
+      - Outputs.NodeSGFunctionArn

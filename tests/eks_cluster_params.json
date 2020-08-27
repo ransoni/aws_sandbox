@@ -1,0 +1,10 @@
+[
+    {
+      "ParameterKey": "EKS_Cluster_Name",
+      "ParameterValue": "MyKey"
+    }, 
+    {
+      "ParameterKey": "InstanceType",
+      "ParameterValue": "m1.micro"
+    }
+]
