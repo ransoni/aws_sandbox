@@ -1,0 +1,179 @@
+#
+# Based on
+# https://github.com/terraform-providers/terraform-provider-aws/blob/master/examples/eks-getting-started/eks-worker-nodes.tf
+# and
+# https://learn.hashicorp.com/terraform/aws/eks-intro
+#
+# EKS Worker Nodes Resources
+#  * IAM role allowing Kubernetes actions to access other AWS services
+#  * EC2 Security Group to allow networking traffic
+#  * Data source to fetch latest EKS worker AMI
+#  * AutoScaling Launch Configuration to configure worker instances
+#  * AutoScaling Group to launch worker instances
+#
+
+resource "aws_iam_role" "eks-jenkins-node" {
+  name = "terraform-eks-jenkins-node-user"
+
+  assume_role_policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_iam_role_policy_attachment" "eks-jenkins-node-AmazonEKSWorkerNodePolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = "${aws_iam_role.eks-jenkins-node.name}"
+}
+
+resource "aws_iam_role_policy_attachment" "eks-jenkins-node-AmazonEKS_CNI_Policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = "${aws_iam_role.eks-jenkins-node.name}"
+}
+
+resource "aws_iam_role_policy_attachment" "eks-jenkins-node-AmazonEC2ContainerRegistryReadOnly" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = "${aws_iam_role.eks-jenkins-node.name}"
+}
+
+resource "aws_iam_instance_profile" "eks-jenkins-node" {
+  name = "terraform-eks-jenkins"
+  role = "${aws_iam_role.eks-jenkins-node.name}"
+}
+
+resource "aws_security_group" "eks-jenkins-node" {
+  name        = "terraform-eks-jenkins-node"
+  description = "Security group for all nodes in the cluster"
+  vpc_id      = "${aws_vpc.eks-jenkins-vpc.id}"
+  # vpc_id      = "${aws_vpc.eks-vpn.id}"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = "${
+    map(
+     "Name", "terraform-eks-jenkins-node",
+     "kubernetes.io/cluster/${var.eks-jenkins-cluster-name}", "owned",
+    )
+  }"
+}
+
+resource "aws_security_group_rule" "eks-jenkins-node-ingress-self" {
+  description              = "Allow node to communicate with each other"
+  from_port                = 0
+  protocol                 = "-1"
+  security_group_id        = "${aws_security_group.eks-jenkins-node.id}"
+  source_security_group_id = "${aws_security_group.eks-jenkins-node.id}"
+  to_port                  = 65535
+  type                     = "ingress"
+}
+
+resource "aws_security_group_rule" "eks-jenkins-node-ingress-cluster" {
+  description              = "Allow worker Kubelets and pods to receive communication from the cluster control plane"
+  from_port                = 1025
+  protocol                 = "tcp"
+  security_group_id        = "${aws_security_group.eks-jenkins-node.id}"
+  source_security_group_id = "${aws_security_group.eks-jenkins-cluster.id}"
+  to_port                  = 65535
+  type                     = "ingress"
+}
+resource "aws_security_group_rule" "eks-jenkins-node-ingress-ssh" {
+  description              = "Allow SSH to worker"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  cidr_blocks              = ["82.181.216.186/32"]
+  security_group_id        = "${aws_security_group.eks-jenkins-node.id}"
+  type                     = "ingress"
+}
+
+data "aws_ami" "eks-jenkins-worker" {
+  filter {
+    name   = "name"
+    values = ["amazon-eks-node-${aws_eks_cluster.jenkins-cluster.version}-v*"]
+  }
+
+  most_recent = true
+  owners      = ["602401143452"] # Amazon EKS AMI Account ID
+}
+
+# EKS currently documents this required userdata for EKS worker nodes to
+# properly configure Kubernetes applications on the EC2 instance.
+# We utilize a Terraform local here to simplify Base64 encoding this
+# information into the AutoScaling Launch Configuration.
+# More information: https://docs.aws.amazon.com/eks/latest/userguide/launch-workers.html
+locals {
+  eks-jenkins-node-userdata = <<USERDATA
+#!/bin/bash
+set -o xtrace
+/etc/eks/bootstrap.sh --apiserver-endpoint '${aws_eks_cluster.jenkins-cluster.endpoint}' --b64-cluster-ca '${aws_eks_cluster.jenkins-cluster.certificate_authority.0.data}' '${var.eks-jenkins-cluster-name}'
+USERDATA
+}
+
+resource "aws_launch_configuration" "eks-jenkins-worker" {
+  associate_public_ip_address = true
+  iam_instance_profile        = "${aws_iam_instance_profile.eks-jenkins-node.name}"
+  image_id                    = "${data.aws_ami.eks-jenkins-worker.id}"
+  instance_type               = "t3.micro"
+  # instance_type               = "m5.2xlarge"
+  name_prefix                 = "terraform-eks-jenkins"
+  # key_name                    = "jenkins-worker"
+  security_groups             = ["${aws_security_group.eks-jenkins-node.id}"]
+  user_data_base64            = "${base64encode(local.eks-jenkins-node-userdata)}"
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 20
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "eks-jenkins-worker-pool-1" {
+  desired_capacity     = 1
+  launch_configuration = "${aws_launch_configuration.eks-jenkins-worker.id}"
+  max_size             = 4
+  min_size             = 0
+  name                 = "terraform-eks-jenkins"
+  vpc_zone_identifier  = ["${aws_subnet.eks-jenkins-subnet.*.id}"]
+  termination_policies = ["OldestInstance"]
+
+  tag {
+    key                 = "Name"
+    value               = "terraform-eks-jenkins"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "kubernetes.io/cluster/${var.eks-jenkins-cluster-name}"
+    value               = "owned"
+    propagate_at_launch = true
+  }
+}
+
+# resource "aws_ebs_volume" "science-data" {
+#   availability_zone = "${var.region}a"
+#   size              = 1000
+#   encrypted         = true
+#   type              = "gp2"
+
+#   tags = {
+#     Name = "Science data disk"
+#   }
+# }

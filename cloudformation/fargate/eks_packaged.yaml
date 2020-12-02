@@ -865,6 +865,31 @@ Resources:
               - - Ref: PrivateSubnet1ID
                 - Ref: PrivateSubnet2ID
             - Ref: PrivateSubnet1ID
+  ALBIngressStack:
+    Metadata:
+      DependsOn:
+      - Ref: ControlPlaneSecurityGroupIngress
+      - Fn::If:
+        - EnableFargate
+        - Ref: FargateNamespaces
+        - Ref: AWS::NoValue
+    Condition: EnableALBIngressController
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/cfn-deploy-packages/80126805a657c3bf9a60ab04f01e627f.template
+      Parameters:
+        OIDCIssuerURLWithoutProtocol:
+          Fn::Join:
+          - ''
+          - Fn::Split:
+            - https://
+            - Fn::GetAtt:
+              - EKSControlPlane
+              - Outputs.OIDCIssuerURL
+        ClusterName:
+          Fn::GetAtt:
+          - EKSControlPlane
+          - Outputs.EKSName
   GenerateNameFunction:
     Condition: GenerateClusterName
     Type: AWS::Lambda::Function

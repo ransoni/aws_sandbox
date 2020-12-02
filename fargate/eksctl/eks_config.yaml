@@ -1,0 +1,10 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+ name: fargate-eks-eng
+ region: eu-west-1
+
+vpc:
+ publicAccessCIDRs: ["62.78.246.91/32","84.253.221.67/32","79.134.107.238/32","212.209.144.42/32","213.216.237.6/32"]
+

@@ -45,7 +45,7 @@
     },
     {
         "ParameterKey": "EKSPublicAccessCIDRs",
-        "ParameterValue": "79.134.107.170/32"
+        "ParameterValue": "62.78.246.91/32"
     },
     {
         "ParameterKey": "EKSPrivateAccessEndpoint",

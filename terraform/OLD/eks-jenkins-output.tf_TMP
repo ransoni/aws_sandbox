@@ -1,0 +1,23 @@
+# to create ConfigMap so that the worker nodes can join the cluster
+locals {
+  jenkins_config_map_aws_auth = <<JENKINSCONFIGMAPAWSAUTH
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system
+data:
+  mapRoles: |
+    - rolearn: ${aws_iam_role.eks-jenkins-node.arn}
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - system:bootstrappers
+        - system:nodes
+JENKINSCONFIGMAPAWSAUTH
+}
+
+output "jenkins_config_map_aws_auth" {
+  value = "${local.jenkins_config_map_aws_auth}"
+}
