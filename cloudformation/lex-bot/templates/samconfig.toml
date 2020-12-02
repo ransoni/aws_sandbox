@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "lex-resources"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-jxrzl7oogwil"
+s3_prefix = "lex-resources"
+region = "eu-central-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "QSS3KeyPrefix=\"lex-bot/\" ArtifactsS3BucketName=\"cfn-deploy-packages\" LexBotJSONKey=\"assets/lex-bot-template/covid_bot_Export.json\""
