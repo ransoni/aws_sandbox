@@ -181,12 +181,22 @@ def create(event, _):
     if 'Prefix' in event['ResourceProperties']:
         logger.info("Prefix EXISTS!")
         helper.Data['Prefix'] = event['ResourceProperties']['Prefix']
-        
-        intents = []
-        intents = modify_intent_names(lex_json['resource']['intents'], event['ResourceProperties']['Prefix'])
-        lex_json['resource']['intents'] = intents
         logger.info("Set Prefix to " + helper.Data['Prefix'] + ".")
-        logger.info("Intents: {}".format(lex_json['resource']['intents']))
+        
+        # If Intents in JSON config, let's transform their names with prefix
+        if 'intents' in lex_json['resource']:
+            intents = []
+            intents = modify_intent_names(lex_json['resource']['intents'], event['ResourceProperties']['Prefix'])
+            lex_json['resource']['intents'] = intents
+            logger.info("Intents: {}".format(lex_json['resource']['intents']))
+        
+        # If Intents in JSON config, let's transform their names with prefix
+        if 'slotTypes' in lex_json['resource']:
+            slot_types = []
+            slot_types = modify_intent_names(lex_json['resource']['slotTypes'], event['ResourceProperties']['Prefix'])
+            lex_json['resource']['slotTypes'] = slot_types
+            # logger.info("Set Prefix to " + helper.Data['Prefix'] + ".")
+            logger.info("Slot Types: {}".format(lex_json['resource']['slotTypes']))
 
     logger.info("Starting to build bot with name: " + lex_json['resource']['name'])
 
@@ -214,6 +224,25 @@ def modify_intent_names(intents, prefix):
         
         #logger.info("Modified intent name %s", str(intent['name']))
     return intent_list
+
+
+def modify_slot_types(slot_types, prefix):
+    """
+    Modifies the Lex intents names, if the prefix parameter is provided
+    :param slot_types: List of Lex model Slot Types
+    :param prefix: Prefix for the intent name to be created
+    :return: List of Slot Types
+    """
+
+    slot_types_list = []
+    for slot_type in slot_types:
+        # logger.info("Modifying slot type name with prefix: " + prefix)
+
+        slot_type['name'] = prefix + "_" + slot_type['name']
+        slot_types_list.append(slot_type)
+        
+        logger.info("Modified Slot Type name %s", str(slot_type['name']))
+    return slot_types_list
 
 
 def check_bot_status(bot_name):
@@ -261,7 +290,7 @@ def poll_create(event, _):
         bot_alias['name'] = event['CrHelperData']['BotAlias']
         bot_alias['botVersion'] = event['CrHelperData']['BotVersion']
         bot_alias['botName'] = bot_name
-        
+
         try:
             bot_get_alias_response = lex_client.get_bot_alias(name = bot_alias['name'], botName = bot_name)
             bot_alias['checksum'] = bot_get_alias_response['checksum']
