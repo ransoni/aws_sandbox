@@ -253,20 +253,21 @@ def poll_create(event, _):
     logger.info("Got create poll")
     bot_name = event['CrHelperData']['BotName']
 
+    if not check_bot_status(bot_name):
+        return None
+
     if 'BotAlias' in event['CrHelperData']:
         bot_alias = {}
         bot_alias['name'] = event['CrHelperData']['BotAlias']
         bot_alias['botVersion'] = event['CrHelperData']['BotVersion']
         bot_alias['botName'] = bot_name
-
-    if not check_bot_status(bot_name):
-        return None
-    # try:
-    #     bot_get_alias_response = lex_client.get_bot_alias(name = bot_alias['name'], botName = bot_name)
-    #     bot_alias['checksum'] = bot_get_alias_response['checksum']
-    # except lex_client.exceptions.NotFoundException:
-    #     pass
-    # lex_client.put_bot_alias(**bot_alias)
+        
+        try:
+            bot_get_alias_response = lex_client.get_bot_alias(name = bot_alias['name'], botName = bot_name)
+            bot_alias['checksum'] = bot_get_alias_response['checksum']
+        except lex_client.exceptions.NotFoundException:
+            pass
+        lex_client.put_bot_alias(**bot_alias)
     return bot_name
 
 
