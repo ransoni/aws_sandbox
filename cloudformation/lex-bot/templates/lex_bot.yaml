@@ -19,10 +19,15 @@ Parameters:
     Description: JSON configuration of the Lex bot
     Type: String
 
-  BotName01:
+  BotName:
     Type: String
     Description: Name of the Lex Bot to Deploy
     Default: TestBot
+
+  IntentPrefix:
+    Type: String
+    Description: Prefix for the intent names
+    AllowedPattern: ^[0-9a-zA-Z_]*$
 
 Resources: 
   LexBotOpsFunctionTrigger:
@@ -32,16 +37,20 @@ Resources:
       LexS3Bucket: !Ref ArtifactsS3BucketName
       LexFileKey: !Sub "${QSS3KeyPrefix}${LexBotJSONKey}"
       AccountID: !Sub '${AWS::AccountId}'
-      BotName: !Ref BotName01
+      BotName: !Ref BotName
+      BotAlias: testbot_dev
+      Prefix: !Ref IntentPrefix
+      # Prefix: dev_dev
   
-  LexBotOpsFunctionTrigger02:
-    Type: Custom::LexBotOpsFunctionTrigger
-    Properties:
-      ServiceToken: !ImportValue LexBotResource
-      LexS3Bucket: !Ref ArtifactsS3BucketName
-      LexFileKey: !Sub "${QSS3KeyPrefix}${LexBotJSONKey}"
-      AccountID: !Sub '${AWS::AccountId}'
-    #   BotName: BotName02
+  # LexBotOpsFunctionTrigger02:
+  #   Type: Custom::LexBotOpsFunctionTrigger
+  #   Properties:
+  #     ServiceToken: !ImportValue LexBotResource
+  #     LexS3Bucket: !Ref ArtifactsS3BucketName
+  #     LexFileKey: !Sub "${QSS3KeyPrefix}${LexBotJSONKey}"
+  #     AccountID: !Sub '${AWS::AccountId}'
+  #     BotName: !Ref BotName01
+  #     Prefix: "dev_"
 
 
 Outputs:
