@@ -219,7 +219,17 @@ def modify_intent_names(intents, prefix):
     for intent in intents:
         logger.info("Modifying intent name with prefix: " + prefix)
 
+        # Transform the Intent name
         intent['name'] = prefix + "_" + intent['name']
+
+        # Trandform the linked Slots names also
+        if 'slots' in intent:
+            for slot in intent['slots']:
+                if 'slotType' in slot:
+                    if slot['slotType'].startswith('AMAZON.'):
+                        continue
+                    slot['slotType'] = prefix + "_" + slot['slotType']
+
         intent_list.append(intent)
         
         #logger.info("Modified intent name %s", str(intent['name']))
