@@ -70,9 +70,7 @@ def create_lex_intents(intents, account_id, slot_type_version):
 
         if intent['name'].startswith('AMAZON.'):
             continue
-        # if 'parentIntentSignature' in intent and intent['parentIntentSignature'] == 'AMAZON.KendraSearchIntent':
-        #     intent['kendraConfiguration']['kendraIndex'] = 'arn:aws:kendra:' + os.environ['AWS_REGION'] + ':' + account_id + ':index/' + kendra_index_id
-        #     intent['kendraConfiguration']['role'] = kendra_search_role_arn
+
         intent.pop('version', None)
         # if intent['fulfillmentActivity']['type'] == 'CodeHook':
         #     intent['fulfillmentActivity']['codeHook']['uri'] = fulfillment_lambda
@@ -174,6 +172,21 @@ def create(event, _):
         logger.info("BotName EXISTS!")
         lex_json['resource']['name'] = event['ResourceProperties']['BotName']
         logger.info("Set BotName to " + lex_json['resource']['name'] + ".")
+    
+    if 'BotAlias' in event['ResourceProperties']:
+        logger.info("BotAlias exists.")
+        bot_alias = event['ResourceProperties']['BotAlias']
+        helper.Data['BotAlias'] = bot_alias
+
+    if 'Prefix' in event['ResourceProperties']:
+        logger.info("Prefix EXISTS!")
+        helper.Data['Prefix'] = event['ResourceProperties']['Prefix']
+        
+        intents = []
+        intents = modify_intent_names(lex_json['resource']['intents'], event['ResourceProperties']['Prefix'])
+        lex_json['resource']['intents'] = intents
+        logger.info("Set Prefix to " + helper.Data['Prefix'] + ".")
+        logger.info("Intents: {}".format(lex_json['resource']['intents']))
 
     logger.info("Starting to build bot with name: " + lex_json['resource']['name'])
 
@@ -182,6 +195,25 @@ def create(event, _):
 
     helper.Data['BotName'] = bot_name
     helper.Data['BotVersion'] = bot_version
+
+
+def modify_intent_names(intents, prefix):
+    """
+    Modifies the Lex intents names, if the prefix parameter is provided
+    :param intents: List of Lex intents
+    :param prefix: Prefix for the intent name to be created
+    :return: List of intents
+    """
+
+    intent_list = []
+    for intent in intents:
+        logger.info("Modifying intent name with prefix: " + prefix)
+
+        intent['name'] = prefix + "_" + intent['name']
+        intent_list.append(intent)
+        
+        #logger.info("Modified intent name %s", str(intent['name']))
+    return intent_list
 
 
 def check_bot_status(bot_name):
@@ -220,19 +252,21 @@ def poll_create(event, _):
     """
     logger.info("Got create poll")
     bot_name = event['CrHelperData']['BotName']
-    bot_alias = {}
-    bot_alias['name'] = 'quickstart'
-    bot_alias['botVersion'] = event['CrHelperData']['BotVersion']
-    bot_alias['botName'] = bot_name
+
+    if 'BotAlias' in event['CrHelperData']:
+        bot_alias = {}
+        bot_alias['name'] = event['CrHelperData']['BotAlias']
+        bot_alias['botVersion'] = event['CrHelperData']['BotVersion']
+        bot_alias['botName'] = bot_name
 
     if not check_bot_status(bot_name):
         return None
-    try:
-        bot_get_alias_response = lex_client.get_bot_alias(name='quickstart', botName = bot_name)
-        bot_alias['checksum'] = bot_get_alias_response['checksum']
-    except lex_client.exceptions.NotFoundException:
-        pass
-    lex_client.put_bot_alias(**bot_alias)
+    # try:
+    #     bot_get_alias_response = lex_client.get_bot_alias(name = bot_alias['name'], botName = bot_name)
+    #     bot_alias['checksum'] = bot_get_alias_response['checksum']
+    # except lex_client.exceptions.NotFoundException:
+    #     pass
+    # lex_client.put_bot_alias(**bot_alias)
     return bot_name
 
 
@@ -301,15 +335,15 @@ def delete_lex_bot(bot_name):
     :param bot_name: Name of bot to be deleted
     :return: None
     """
-    # bot = lex_client.get_bot(name=bot_name, versionOrAlias='$LATEST')
+    bot = lex_client.get_bot(name=bot_name, versionOrAlias='$LATEST')
     delete_bot_aliases(bot_name)
     try:
         lex_client.delete_bot(name=bot_name)
     except lex_client.exceptions.ConflictException:
         time.sleep(SLEEP_TIME)
         lex_client.delete_bot(name=bot_name)
-    # slot_types = delete_intents(bot_name, bot['intents'])
-    # delete_slot_types(bot_name, slot_types)
+    slot_types = delete_intents(bot_name, bot['intents'])
+    delete_slot_types(bot_name, slot_types)
 
 
 @helper.delete
