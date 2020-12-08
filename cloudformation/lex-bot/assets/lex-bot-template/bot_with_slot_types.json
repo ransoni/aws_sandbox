@@ -169,7 +169,40 @@
           "What's your name",
           "who are you"
         ],
-        "slots": [],
+        "slots": [
+          {
+            "sampleUtterances": [],
+            "slotType": "AMAZON.US_FIRST_NAME",
+            "slotConstraint": "Optional",
+            "valueElicitationPrompt": {
+              "messages": [
+                {
+                  "contentType": "PlainText",
+                  "content": "Sorry, can you please repeat that?"
+                }
+              ],
+              "maxAttempts": 2
+            },
+            "priority": 15,
+            "name": "FName_A"
+          },
+          {
+            "sampleUtterances": [],
+            "slotType": "AMAZON.US_LAST_NAME",
+            "slotConstraint": "Optional",
+            "valueElicitationPrompt": {
+              "messages": [
+                {
+                  "contentType": "PlainText",
+                  "content": "Sorry, can you please repeat that?"
+                }
+              ],
+              "maxAttempts": 2
+            },
+            "priority": 16,
+            "name": "LName_A"
+          }
+        ],
         "conclusionStatement": {
           "messages": [
             {
@@ -705,7 +738,25 @@
           "How long is the incubation",
           "incubation period"
         ],
-        "slots": [],
+        "slots": [
+          {
+            "sampleUtterances": [],
+            "slotType": "NUMBER_RELATION",
+            "slotTypeVersion": "3",
+            "slotConstraint": "Optional",
+            "valueElicitationPrompt": {
+              "messages": [
+                {
+                  "contentType": "PlainText",
+                  "content": "Sorry, can you please repeat that?"
+                }
+              ],
+              "maxAttempts": 2
+            },
+            "priority": 13,
+            "name": "NRel_A"
+          },
+        ],
         "conclusionStatement": {
           "messages": [
             {
@@ -977,6 +1028,21 @@
               "the patient's",
               "this patients",
               "this patient's"
+            ]
+          }
+        ],
+        "valueSelectionStrategy": "ORIGINAL_VALUE"
+      },
+      {
+        "name": "NUMBER_RELATION",
+        "version": "3",
+        "enumerationValues": [
+          {
+            "value": "over",
+            "synonyms": [
+              "over",
+              "/",
+              "OVER"
             ]
           }
         ],
