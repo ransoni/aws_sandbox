@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A Cloudformation template to launch a Custom Lambda backed resource for Lex.
+
+Parameters:
+  
+  ArtifactsS3BucketName:
+    AllowedPattern: ^[a-z0-9][a-z0-9-.]*$
+    Description: The name of S3 Bucket in which Lambda code is present
+    Type: String
+
+  QSS3KeyPrefix:
+    Type: String
+    Description: The S3 key name prefix used for your copy of Quick Start assets
+    Default: lex-bot/
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+
+  LexBotJSONKey:
+    AllowedPattern: ^.*.json$
+    Description: JSON configuration of the Lex bot
+    Type: String
+
+  BotName:
+    Type: String
+    Description: Name of the Lex Bot to Deploy
+    Default: TestBot
+
+  IntentPrefix:
+    Type: String
+    Description: Prefix for the intent names
+    AllowedPattern: ^[0-9a-zA-Z_]*$
+
+Resources: 
+  LexBotOpsFunctionTrigger:
+    Type: Custom::LexBotOpsFunctionTrigger
+    Properties:
+      ServiceToken: !ImportValue LexBotResource
+      LexS3Bucket: !Ref ArtifactsS3BucketName
+      LexFileKey: !Sub "${QSS3KeyPrefix}${LexBotJSONKey}"
+      AccountID: !Sub '${AWS::AccountId}'
+      BotName: !Ref BotName
+      BotAlias: testbot_dev
+      Prefix: !Ref IntentPrefix
+      # Prefix: dev_dev
+  
+  # LexBotOpsFunctionTrigger02:
+  #   Type: Custom::LexBotOpsFunctionTrigger
+  #   Properties:
+  #     ServiceToken: !ImportValue LexBotResource
+  #     LexS3Bucket: !Ref ArtifactsS3BucketName
+  #     LexFileKey: !Sub "${QSS3KeyPrefix}${LexBotJSONKey}"
+  #     AccountID: !Sub '${AWS::AccountId}'
+  #     BotName: !Ref BotName01
+  #     Prefix: "dev_"
+
+
+Outputs:
+  LexBotName:
+    Description: Lex Bot Name
+    Value: !GetAtt LexBotOpsFunctionTrigger.BotName
+
